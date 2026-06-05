@@ -1,7 +1,11 @@
 ## درباره
 این برنامه توسط هوشمص کلاد نوشته شده و هدف آن ساخت کتاب‌های دیجیتالی با فرمت epub است که برای زبان پارسی مناسب‌سازی شده و پیکربندی آن برای حالت راست‌چین تنظیم شده است.
 <p align="center">
-  <strong><a href="https://pushideh.github.io/Persian-epub-maker/">صفحه‌ی کتاب‌ساز پارسی</a></strong>
+  <strong>
+    <a href="https://pushideh.github.io/Persian-epub-maker/" target="_blank">
+   صفحه‌ی کتاب‌ساز پارسی
+    </a>
+  </strong>
 </p>
 
 
