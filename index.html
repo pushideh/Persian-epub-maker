@@ -473,6 +473,62 @@
             white-space: nowrap;
         }
 
+        /* ───── Backup / Restore ───── */
+        .backup-section {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.25rem;
+            border: 1.5px solid var(--border-light);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .backup-section-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .backup-btns {
+            display: flex;
+            flex-direction: row;
+            gap: 0.6rem;
+            flex-wrap: nowrap;
+        }
+
+        .btn-backup, .btn-restore {
+            width: 130px;
+            height: 50px;
+            justify-content: center;
+            padding: 0.6rem 0.4rem;
+        }
+
+        .btn-restore {
+            
+        }
+
+        .btn-backup {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1.5px solid #86efac;
+            margin-right: 1.3rem;
+        }
+        .btn-backup:hover { background: #dcfce7; }
+
+        .btn-restore {
+            background: #fefce8;
+            color: #713f12;
+            border: 1.5px solid #fde68a;
+        }
+        .btn-restore:hover { background: #fef9c3; }
+
         /* ───── Generate Button ───── */
         .generate-section {
             background: var(--surface);
@@ -654,13 +710,32 @@
         </div>
     </div>
 
+    <!-- ─── بکاپ / بازیابی ─── -->
+    <div class="backup-section">
+        <span class="backup-section-label">💾 ذخیره و بازیابی پشتیبان</span>
+        <div class="backup-btns">
+            <button class="btn btn-backup" onclick="saveBackup()">📥 ذخیره </button>
+            <label class="btn btn-restore" style="cursor:pointer;">
+                📂 بارگذاری 
+                <input type="file" accept=".json" style="display:none;" onchange="loadBackup(this)">
+            </label>
+        </div>
+    </div>
+
     <!-- ─── دکمه تولید ─── -->
     <div class="generate-section">
         <button class="btn btn-primary btn-generate" onclick="generateEPUB()">
             📥 ساخت فایل EPUB
         </button>
-        <p class="generate-hint">فونت‌های Vazirmatn به‌صورت تعبیه‌شده داخل فایل EPUB قرار می‌گیرند.</p>
+        <p class="generate-hint"></p>
     </div>
+
+    <!-- ─── پاورقی ─── -->
+    <p style="margin-top:0.75rem; margin-bottom:0.1rem; padding:0.25rem 1rem; text-align:center; font-size:0.72rem; color:var(--text-muted); line-height:2;">
+        طراحی شده توسط: <a href="https://x.com/pushideh" target="_blank" rel="noopener" style="color:var(--primary); text-decoration:none; font-weight:600;">پوشیده</a>
+        <br>
+        نسخه برنامه: ۴.۲
+    </p>
 
 </div>
 
@@ -1003,6 +1078,122 @@
         html = html.replace(/<(p|h1|h2|h3|h4|h5|h6|li|blockquote|div|td|th|tr|table)(\s(?![^>]*dir=)|>)/gi,
             (m, tag, rest) => `<${tag} dir="rtl"${rest}`);
         return html;
+    }
+
+    /* ────────────────────────────────────────
+       بکاپ و بازیابی پروژه
+    ──────────────────────────────────────── */
+    function saveBackup() {
+        syncChaptersFromDOM();
+
+        const backup = {
+            version: '4.2',
+            savedAt: new Date().toISOString(),
+            book: {
+                title:     document.getElementById('bookTitle').value,
+                author:    document.getElementById('bookAuthor').value,
+                lang:      document.getElementById('bookLang').value,
+                publisher: document.getElementById('bookPublisher').value,
+            },
+            cover: coverData ? { data: coverData, ext: coverExt } : null,
+            chapters: chapters.map(ch => ({
+                id:        ch.id,
+                title:     ch.title,
+                content:   ch.content,
+                collapsed: ch.collapsed,
+                images:    ch.images.map(img => ({
+                    id:      img.id,
+                    data:    img.data,
+                    ext:     img.ext,
+                    preview: img.preview,
+                    name:    img.name
+                }))
+            }))
+        };
+
+        const now = new Date();
+        const datePart = now.toISOString().slice(0, 10);
+        const timePart = now.toTimeString().slice(0, 5).replace(':', '-');
+        const bookName = backup.book.title || 'بدون‌عنوان';
+
+        const json = JSON.stringify(backup, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `پشتیبان_${bookName}_${datePart}_${timePart}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }
+
+    function loadBackup(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const backup = JSON.parse(e.target.result);
+                if (!backup.book || !Array.isArray(backup.chapters)) {
+                    alert('❌ فایل بکاپ معتبر نیست.');
+                    return;
+                }
+
+                if (!confirm(`📂 پروژه «${backup.book.title || 'بدون عنوان'}» بارگذاری شود؟\nتمام محتوای فعلی جایگزین می‌شود.`))
+                    return;
+
+                // اطلاعات کتاب
+                document.getElementById('bookTitle').value     = backup.book.title     || '';
+                document.getElementById('bookAuthor').value    = backup.book.author    || '';
+                document.getElementById('bookLang').value      = backup.book.lang      || 'fa';
+                document.getElementById('bookPublisher').value = backup.book.publisher || '';
+
+                // جلد
+                if (backup.cover && backup.cover.data) {
+                    coverData = backup.cover.data;
+                    coverExt  = backup.cover.ext || 'jpg';
+                    const src = `data:image/${coverExt};base64,${coverData}`;
+                    document.getElementById('coverPreview').src = src;
+                    document.getElementById('coverDropArea').style.display  = 'none';
+                    document.getElementById('coverPreviewWrap').style.display = 'block';
+                } else {
+                    removeCover();
+                }
+
+                // فصل‌ها
+                chapters = backup.chapters.map(ch => ({
+                    id:        ch.id        || Date.now() + Math.random(),
+                    title:     ch.title     || '',
+                    content:   ch.content   || '',
+                    collapsed: ch.collapsed || false,
+                    images:    (ch.images || []).map(img => ({
+                        id:      img.id,
+                        data:    img.data,
+                        ext:     img.ext,
+                        preview: img.preview || `data:image/${img.ext};base64,${img.data}`,
+                        name:    img.name || img.id
+                    }))
+                }));
+
+                renderChapters();
+                alert(`✅ پروژه «${backup.book.title || 'بدون عنوان'}» با ${toPersianDigits(chapters.length)} فصل بارگذاری شد.`);
+            } catch (err) {
+                alert('❌ خطا در خواندن فایل بکاپ:\n' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    // همگام‌سازی مقادیر textarea با آرایه chapters قبل از ذخیره
+    function syncChaptersFromDOM() {
+        chapters.forEach(ch => {
+            const ta = document.getElementById(`content-${ch.id}`);
+            if (ta) ch.content = ta.value;
+            const titleInput = document.querySelector(`#ch-item-${ch.id} input[type="text"]`);
+            if (titleInput) ch.title = titleInput.value;
+        });
     }
 
     /* ────────────────────────────────────────
