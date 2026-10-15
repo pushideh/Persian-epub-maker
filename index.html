@@ -70,6 +70,10 @@
         .aurora .b2 { width: 380px; height: 380px; background: var(--coral); top: 40%; right: -140px; opacity: .3; animation-duration: 34s; animation-delay: -8s; }
         .aurora .b3 { width: 420px; height: 420px; background: var(--mint); bottom: -180px; left: 25%; opacity: .3; animation-duration: 40s; animation-delay: -15s; }
 
+        /* پس‌زمینه‌ی متحرک: حروف پارسی شبکه‌ای */
+        #letterBg { position: fixed; inset: 0; z-index: 0; pointer-events: none; display: block; }
+        .container { position: relative; z-index: 1; }
+
         @keyframes drift {
             0%   { transform: translate(0, 0) scale(1); }
             50%  { transform: translate(60px, 40px) scale(1.1); }
@@ -526,6 +530,80 @@
 
 <div class="aurora"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
 <div class="girih"></div>
+<canvas id="letterBg" aria-hidden="true"></canvas>
+<script>
+(function () {
+    var canvas = document.getElementById('letterBg');
+    var ctx = canvas.getContext('2d');
+    var LETTERS = Array.from('ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی');
+    var COLORS = ['#75C8B6', '#eb6846', '#7D7165'];
+    var LINK_DIST = 170, MAX_LINKS = 3;
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var letters = [], w = 0, h = 0, dpr = 1;
+
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function makeLetter() {
+        var angle = rnd(0, Math.PI * 2), speed = rnd(0.08, 0.25);
+        return {
+            ch: pick(LETTERS),
+            x: rnd(0, w), y: rnd(0, h),
+            vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+            size: rnd(10, 20),
+            bold: Math.random() < 0.35,
+            alpha: rnd(0.15, 0.30),
+            color: pick(COLORS)
+        };
+    }
+
+    function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var target = Math.min(70, Math.round((w * h) / 25000));
+        if (letters.length > target) letters.length = target;
+        while (letters.length < target) letters.push(makeLetter());
+    }
+
+    function move() {
+        var m = 30, k = reduceMotion ? 0 : 1;
+        for (var i = 0; i < letters.length; i++) {
+            var l = letters[i];
+            l.x += l.vx * k; l.y += l.vy * k;
+            if (l.x < -m) l.x = w + m; else if (l.x > w + m) l.x = -m;
+            if (l.y < -m) l.y = h + m; else if (l.y > h + m) l.y = -m;
+        }
+    }
+
+    function drawLetters() {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (var i = 0; i < letters.length; i++) {
+            var l = letters[i];
+            ctx.font = (l.bold ? '800 ' : '400 ') + l.size.toFixed(1) + 'px Vazirmatn, Tahoma, sans-serif';
+            ctx.globalAlpha = l.alpha;
+            ctx.fillStyle = l.color;
+            ctx.fillText(l.ch, l.x, l.y);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function frame() {
+        ctx.clearRect(0, 0, w, h);
+        move();
+        drawLetters();
+        requestAnimationFrame(frame);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    frame();
+})();
+</script>
+
 
 <!-- ─── پنل پیشرفت ─── -->
 <div class="progress-overlay" id="progressOverlay">
