@@ -536,7 +536,11 @@
     var canvas = document.getElementById('letterBg');
     var ctx = canvas.getContext('2d');
     var LETTERS = Array.from('ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی');
-    var COLORS = ['#75C8B6', '#eb6846', '#7D7165'];
+    function mixColor(c1, c2, t) {
+        var a = [0, 2, 4].map(function (i) { return parseInt(c1.substr(i + 1, 2), 16); });
+        var b = [0, 2, 4].map(function (i) { return parseInt(c2.substr(i + 1, 2), 16); });
+        return 'rgb(' + a.map(function (v, i) { return Math.round(v + (b[i] - v) * t); }).join(',') + ')';
+    }
     var LINK_DIST = 170, MAX_LINKS = 3;
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var letters = [], w = 0, h = 0, dpr = 1;
@@ -553,7 +557,7 @@
             size: rnd(10, 20),
             bold: Math.random() < 0.35,
             alpha: rnd(0.15, 0.30),
-            color: pick(COLORS)
+            color: mixColor('#75C8B6', '#eb6846', Math.random())
         };
     }
 
@@ -618,7 +622,7 @@
 
     <!-- ─── سرصفحه ─── -->
     <header class="app-header glass">
-        <span class="version-pill">نسخه ۵.۳</span>
+        <span class="version-pill">نسخه ۵.۲</span>
         <div class="logo-book">ک</div>
         <div>
             <h1>کتاب‌ساز پارسی</h1>
@@ -719,7 +723,7 @@
     <p class="footer">
         طراحی شده توسط: <a href="https://x.com/pushideh" target="_blank" rel="noopener">پوشیده</a>
         <br>
-        نسخه برنامه: ۵.۳
+        نسخه برنامه: ۵.۲
     </p>
 
 </div>
